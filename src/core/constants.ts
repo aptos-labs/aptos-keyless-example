@@ -12,4 +12,4 @@ export const devnetClient = new Aptos(
 );
 
 /// FIXME: Put your client id here
-export const GOOGLE_CLIENT_ID = "";
+export const GOOGLE_CLIENT_ID = "596998260187-fj6doq1kfja3fqmsva2jjnrt6vucvr3i.apps.googleusercontent.com";
