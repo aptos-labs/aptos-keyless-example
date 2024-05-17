@@ -10,8 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@aptos-labs/ts-sdk": "1.10.0-zeta.2",
-    "dotenv": "^16.4.5",
+    "@aptos-labs/ts-sdk": "1.14.0-zeta.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.3",
