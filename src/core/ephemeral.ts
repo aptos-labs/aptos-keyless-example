@@ -4,34 +4,18 @@
 import { Ed25519PrivateKey, EphemeralKeyPair } from "@aptos-labs/ts-sdk";
 
 /**
- * TODO: Replace with seralizer
+ * Encoding for the EphemeralKeyPair class to be stored in localStorage
  */
 export const EphemeralKeyPairEncoding = {
-  decode: (e: any) =>
-    new EphemeralKeyPair({
-      blinder: e.blinder,
-      expiryDateSecs: BigInt(e.expiryDateSecs),
-      privateKey: new Ed25519PrivateKey(e.privateKey),
-    }),
-  encode: (e: EphemeralKeyPair) => ({
-    __type: "EphemeralKeyPair",
-    blinder: e.blinder,
-    expiryDateSecs: e.expiryDateSecs.toString(),
-    privateKey: e.privateKey.toString(),
-  }),
+  decode: (e: any) => EphemeralKeyPair.fromBytes(e.data),
+  encode: (e: EphemeralKeyPair) => ({ __type: 'EphemeralKeyPair', data: e.bcsToBytes() }),
 };
 
-export const validateEphemeralKeyPair = (
-  keyPair: EphemeralKeyPair
-): EphemeralKeyPair | undefined =>
+export const validateEphemeralKeyPair = (keyPair: EphemeralKeyPair): EphemeralKeyPair | undefined =>
   isValidEphemeralKeyPair(keyPair) ? keyPair : undefined;
 
-const TWENTY_FOUR_HOURS_IN_SECONDS: bigint = BigInt(24 * 60 * 60);
-export const nowSeconds = (): bigint => {
-  return BigInt(Math.floor(Date.now() / 1000));
-}
 export const isValidEphemeralKeyPair = (keyPair: EphemeralKeyPair): boolean => {
-  return nowSeconds() <= keyPair.expiryDateSecs;
+  return !keyPair.isExpired();
 };
 
 /**
@@ -40,7 +24,7 @@ export const isValidEphemeralKeyPair = (keyPair: EphemeralKeyPair): boolean => {
  * @param params Additional parameters for the ephemeral key pair
  */
 export const createEphemeralKeyPair = ({
-  expiryDateSecs = nowSeconds() + TWENTY_FOUR_HOURS_IN_SECONDS,
+  expiryDateSecs = BigInt(Math.floor(Date.now() / 1000)) + BigInt(24 * 60 * 60),
   privateKey = Ed25519PrivateKey.generate(),
   ...options
 }: Partial<ConstructorParameters<typeof EphemeralKeyPair>[0]> = {}) =>

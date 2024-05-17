@@ -1,7 +1,7 @@
 // Copyright © Aptos
 // SPDX-License-Identifier: Apache-2.0
 
-import { EphemeralKeyPair, KeylessAccount } from "@aptos-labs/ts-sdk";
+import { EphemeralKeyPair, KeylessAccount, ProofFetchStatus } from "@aptos-labs/ts-sdk";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { LocalStorageKeys, devnetClient } from "./constants";
@@ -81,7 +81,7 @@ export const useKeylessAccounts = create<
   KeylessAccountsState & KeylessAccountsActions
 >()(
   persist(
-    (set, get) => ({
+    (set, get, store) => ({
       ...({ accounts: [] } satisfies KeylessAccountsState),
       ...({
         commitEphemeralKeyPair: (keyPair) => {
@@ -122,6 +122,15 @@ export const useKeylessAccounts = create<
             );
           }
 
+          // Handler for proof fetch status
+          const handleProofFetchStatus = async (res: ProofFetchStatus) => {
+            if (res.status === 'Failed') {
+              get().disconnectKeylessAccount();
+            } else {
+              store.persist.rehydrate();
+            }
+          };
+
           // Derive and store the active account
           const storedAccount = get().accounts.find(
             (a) => a.idToken.decoded.sub === decodedToken.sub
@@ -131,6 +140,7 @@ export const useKeylessAccounts = create<
             activeAccount = await devnetClient.deriveKeylessAccount({
               ephemeralKeyPair,
               jwt: idToken,
+              proofFetchCallback: handleProofFetchStatus,
             });
           } catch (error) {
             // If we cannot derive an account using the pepper service, attempt to derive it using the stored pepper
@@ -139,11 +149,14 @@ export const useKeylessAccounts = create<
               ephemeralKeyPair,
               jwt: idToken,
               pepper: storedAccount.pepper,
+              proofFetchCallback: handleProofFetchStatus,
             });
           }
 
           // Store the account and set it as the active account
           const { pepper } = activeAccount;
+          // This will be set in state but not persisted. It will attempt to persist the
+          // account after the proof fetch.
           set({
             accounts: storedAccount
               ? // If the account already exists, update it. Otherwise, append it.
