@@ -1,49 +1,24 @@
 // Copyright © Aptos
 // SPDX-License-Identifier: Apache-2.0
 
-import {
-  Groth16Zkp,
-  KeylessAccount,
-  SignedGroth16Signature,
-} from "@aptos-labs/ts-sdk";
+import { KeylessAccount } from "@aptos-labs/ts-sdk";
 import { isValidEphemeralKeyPair } from "./ephemeral";
 import { decodeIdToken, isValidIdToken } from "./idToken";
 
 /**
  * Encoding for the KeylessAccount class to be stored in localStorage
- *
- * TODO: Replace with seralizer
  */
 export const KeylessAccountEncoding = {
-  decode: (e: any) =>
-    // TODO: Add training wheel signature
-    KeylessAccount.fromJWTAndProof({
-      ephemeralKeyPair: e.ephemeralKeyPair,
-      jwt: e.jwt,
-      pepper: e.pepper,
-      proof: new SignedGroth16Signature({
-        extraField: e.proof.extraField,
-        overrideAudVal: e.proof.overrideAudVal,
-        proof: new Groth16Zkp({
-          a: e.proof.proof.a,
-          b: e.proof.proof.b,
-          c: e.proof.proof.c,
-        }),
-      }),
-    }),
+  decode: (e: any) => KeylessAccount.fromBytes(e.data),
+  // If the account has a proof, it can be persisted, otherwise,
+  // it should not be stored.
   encode: (e: KeylessAccount) =>
-    // TODO: Add training wheel signature
-    ({
-      __type: "KeylessAccount",
-      ephemeralKeyPair: e.ephemeralKeyPair,
-      jwt: e.jwt,
-      pepper: e.pepper,
-      proof: {
-        extraField: e.proof.extraField,
-        overrideAudVal: e.proof.overrideAudVal,
-        proof: { a: e.proof.proof.a, b: e.proof.proof.b, c: e.proof.proof.c },
-      },
-    }),
+    e.proof
+      ? {
+          __type: "KeylessAccount",
+          data: e.bcsToBytes(),
+        }
+      : undefined,
 };
 
 /**
