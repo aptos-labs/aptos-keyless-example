@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@aptos-labs/ts-sdk": "1.19.0",
+    "aptos": "^1.21.0",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
