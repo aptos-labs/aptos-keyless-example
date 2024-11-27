@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
+  AccountAddress,
+  AccountAddressInput,
   EphemeralKeyPair,
+  FederatedKeylessAccount,
   KeylessAccount,
+  ProofFetchCallback,
   ProofFetchStatus,
 } from "@aptos-labs/ts-sdk";
 import { create } from "zustand";
@@ -16,14 +20,15 @@ import {
   validateEphemeralKeyPair,
 } from "./ephemeral";
 import { EncryptedScopedIdToken } from "./types";
-import { KeylessAccountEncoding, validateKeylessAccount } from "./keyless";
+import { FederatedKeylessAccountEncoding, KeylessAccountEncoding, validateKeylessAccount } from "./keyless";
 
 interface KeylessAccountsState {
   accounts: {
     idToken: { decoded: EncryptedScopedIdToken; raw: string };
     pepper: Uint8Array;
+    jwkAddress?: AccountAddress;
   }[];
-  activeAccount?: KeylessAccount;
+  activeAccount?: KeylessAccount | FederatedKeylessAccount;
   ephemeralKeyPair?: EphemeralKeyPair;
 }
 
@@ -53,11 +58,15 @@ interface KeylessAccountsActions {
    * 3. The idToken and Ephemeral key pair must both be valid.
    *
    * @param idToken - The idToken of the account to switch to.
+   * @param isFederated - Boolean flag to identify keyless account type to use.
+   * @param jwkAddress - The account address that holds the JWK set resource.
    * @returns The active account if the switch was successful, otherwise undefined.
    */
   switchKeylessAccount: (
-    idToken: string
-  ) => Promise<KeylessAccount | undefined>;
+    idToken: string,
+    isFederated: boolean,
+    jwkAddress?: AccountAddress,
+  ) => Promise<KeylessAccount | FederatedKeylessAccount | undefined>;
 }
 
 const storage = createJSONStorage<KeylessAccountsState>(() => localStorage, {
@@ -68,6 +77,7 @@ const storage = createJSONStorage<KeylessAccountsState>(() => localStorage, {
     if (e instanceof EphemeralKeyPair)
       return EphemeralKeyPairEncoding.encode(e);
     if (e instanceof KeylessAccount) return KeylessAccountEncoding.encode(e);
+    if (e instanceof FederatedKeylessAccount) return FederatedKeylessAccountEncoding.encode(e);
     return e;
   },
   reviver: (_, e: any) => {
@@ -77,6 +87,8 @@ const storage = createJSONStorage<KeylessAccountsState>(() => localStorage, {
       return EphemeralKeyPairEncoding.decode(e);
     if (e && e.__type === "KeylessAccount")
       return KeylessAccountEncoding.decode(e);
+    if (e && e.__type === "FederatedKeylessAccount")
+      return FederatedKeylessAccountEncoding.decode(e);
     return e;
   },
 });
@@ -104,7 +116,7 @@ export const useKeylessAccounts = create<
           return account ? validateEphemeralKeyPair(account) : undefined;
         },
 
-        switchKeylessAccount: async (idToken: string) => {
+        switchKeylessAccount: async (idToken: string, isFederated: boolean, jwkAddress?: AccountAddress) => {
           set({ ...get(), activeAccount: undefined }, true);
 
           // If the idToken is invalid, return undefined
@@ -139,22 +151,28 @@ export const useKeylessAccounts = create<
           const storedAccount = get().accounts.find(
             (a) => a.idToken.decoded.sub === decodedToken.sub
           );
-          let activeAccount: KeylessAccount | undefined;
+          let activeAccount: KeylessAccount | FederatedKeylessAccount | undefined;
+
+          const deriveKeylessAccountArgs: {
+            jwt: string,
+            ephemeralKeyPair: EphemeralKeyPair,
+            proofFetchCallback: ProofFetchCallback,
+            jwkAddress?: AccountAddressInput,
+            pepper?: Uint8Array,
+          } = {
+            jwt: idToken,
+            ephemeralKeyPair,
+            proofFetchCallback,
+            jwkAddress,
+          };
+
           try {
-            activeAccount = await devnetClient.deriveKeylessAccount({
-              ephemeralKeyPair,
-              jwt: idToken,
-              proofFetchCallback,
-            });
+            activeAccount = await devnetClient.deriveKeylessAccount(deriveKeylessAccountArgs);
           } catch (error) {
             // If we cannot derive an account using the pepper service, attempt to derive it using the stored pepper
             if (!storedAccount?.pepper) throw error;
-            activeAccount = await devnetClient.deriveKeylessAccount({
-              ephemeralKeyPair,
-              jwt: idToken,
-              pepper: storedAccount.pepper,
-              proofFetchCallback,
-            });
+            deriveKeylessAccountArgs.pepper = storedAccount.pepper;
+            activeAccount = await devnetClient.deriveKeylessAccount(deriveKeylessAccountArgs);
           }
 
           // Store the account and set it as the active account
@@ -167,12 +185,16 @@ export const useKeylessAccounts = create<
                     ? {
                         idToken: { decoded: decodedToken, raw: idToken },
                         pepper,
+                        ...(isFederated && { jwkAddress }),
                       }
                     : a
                 )
               : [
                   ...get().accounts,
-                  { idToken: { decoded: decodedToken, raw: idToken }, pepper },
+                  {
+                    idToken: { decoded: decodedToken, raw: idToken },
+                    pepper,
+                    ...(isFederated && { jwkAddress }), },
                 ],
             activeAccount,
           });

@@ -13,3 +13,7 @@ export const devnetClient = new Aptos(
 
 /// FIXME: Put your client id here
 export const GOOGLE_CLIENT_ID = "";
+
+/// FIXME: Put your issuer url and client id here (federated keyless)
+export const AUTH0_ISS = ""; // e.g., "https://dev-xxxxxxxx.us.auth0.com/"
+export const AUTH0_CLIENT_ID = "";

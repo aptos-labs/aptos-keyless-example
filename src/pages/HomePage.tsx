@@ -1,11 +1,13 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useKeylessAccounts } from "../core/useKeylessAccounts";
-import GoogleLogo from "../components/GoogleLogo";
 import { collapseAddress } from "../core/utils";
+import GoogleLogo from "../components/GoogleLogo.tsx";
 
 function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isFederated = location.state?.isFederated;
 
   const { activeAccount, disconnectKeylessAccount } = useKeylessAccounts();
 
@@ -22,7 +24,7 @@ function HomePage() {
         <div className="grid gap-2">
           {activeAccount ? (
             <div className="flex justify-center items-center border rounded-lg px-8 py-2 shadow-sm cursor-not-allowed">
-              <GoogleLogo />
+              {!isFederated && <GoogleLogo/>}
               {collapseAddress(activeAccount?.accountAddress.toString())}
             </div>
           ) : (

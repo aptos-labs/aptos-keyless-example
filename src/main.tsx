@@ -4,7 +4,6 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import HomePage from "./pages/HomePage.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
 import CallbackPage from "./pages/CallbackPage.tsx";
-
 import "./index.css";
 
 const router = createBrowserRouter([
@@ -14,7 +13,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/callback",
-    element: <CallbackPage />,
+    element: <CallbackPage isFederated={false} />,
+  },
+  {
+    path: "/federated/callback",
+    element: <CallbackPage isFederated={true} />,
   },
   {
     path: "/home",
