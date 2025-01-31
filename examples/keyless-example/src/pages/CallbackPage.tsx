@@ -1,14 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useKeylessAccounts } from "../core/useKeylessAccounts";
-import { Account, Ed25519PrivateKey } from "@aptos-labs/ts-sdk";
-import { updateFederatedKeylessJwkSet } from "../core/jwk.ts";
 
-interface CallbackPageProps {
-  isFederated: boolean;
-}
-
-function CallbackPage({ isFederated } : CallbackPageProps) {
+function CallbackPage() {
   const isLoading = useRef(false);
   const switchKeylessAccount = useKeylessAccounts(
     (state) => state.switchKeylessAccount
@@ -25,14 +19,8 @@ function CallbackPage({ isFederated } : CallbackPageProps) {
 
     async function deriveAccount(idToken: string) {
       try {
-        // Publish or update the JWK set
-        // Note: In production, create a JWK account and publish the JWK set to that account in a separate logic.
-        //       Ensure that the JWK set on the JWK account is updated whenever a key rotation occurs by the issuer.
-        const privateKey = new Ed25519PrivateKey(import.meta.env.VITE_JWK_ACCOUNT_PRIVATE_KEY as string);
-        const jwkAccount = Account.fromPrivateKey({ privateKey });
-        await updateFederatedKeylessJwkSet(jwkAccount); // Call this during initialization or after a JWK set rotation.
-        await switchKeylessAccount(idToken, isFederated, jwkAccount.accountAddress);
-        navigate("/home", { state: { isFederated } });
+        await switchKeylessAccount(idToken);
+        navigate("/home");
       } catch (error) {
         navigate("/");
       }
@@ -44,7 +32,7 @@ function CallbackPage({ isFederated } : CallbackPageProps) {
     }
 
     deriveAccount(idToken);
-  }, [idToken, isLoading, isFederated, navigate, switchKeylessAccount]);
+  }, [idToken, isLoading, navigate, switchKeylessAccount]);
 
   return (
     <div className="flex items-center justify-center h-screen w-screen">
