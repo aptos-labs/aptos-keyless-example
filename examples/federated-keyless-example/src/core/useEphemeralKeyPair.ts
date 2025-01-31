@@ -3,10 +3,10 @@
 
 import { useMemo } from "react";
 import { createEphemeralKeyPair } from "./ephemeral";
-import { useKeylessAccounts } from "./useKeylessAccounts";
+import { useFederatedKeylessAccounts } from "./useFederatedKeylessAccounts.ts";
 
 export default function useEphemeralKeyPair() {
-  const { commitEphemeralKeyPair, getEphemeralKeyPair } = useKeylessAccounts();
+  const { commitEphemeralKeyPair, getEphemeralKeyPair } = useFederatedKeylessAccounts();
 
   const ephemeralKeyPair = useMemo(() => {
     let keyPair = getEphemeralKeyPair();

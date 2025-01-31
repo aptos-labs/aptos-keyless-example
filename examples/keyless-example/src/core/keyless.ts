@@ -22,7 +22,7 @@ export const KeylessAccountEncoding = {
 };
 
 /**
- * If the account has an invalid Ephemeral key pair or idToken, the account needs toe be refreshed with either
+ * If the account has an invalid Ephemeral key pair or idToken, the account needs to be refreshed with either
  * a new nonce or idToken. If the account is valid, it is returned.
  *
  * @param account - The account to validate.

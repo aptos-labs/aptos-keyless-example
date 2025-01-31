@@ -3,11 +3,8 @@
 
 import {
   AccountAddress,
-  AccountAddressInput,
   EphemeralKeyPair,
   FederatedKeylessAccount,
-  KeylessAccount,
-  ProofFetchCallback,
   ProofFetchStatus,
 } from "@aptos-labs/ts-sdk";
 import { create } from "zustand";
@@ -20,19 +17,19 @@ import {
   validateEphemeralKeyPair,
 } from "./ephemeral";
 import { EncryptedScopedIdToken } from "./types";
-import { FederatedKeylessAccountEncoding, KeylessAccountEncoding, validateKeylessAccount } from "./keyless";
+import { FederatedKeylessAccountEncoding, validateFederatedKeylessAccount } from "./federated_keyless.ts";
 
-interface KeylessAccountsState {
+interface FederatedKeylessAccountsState {
   accounts: {
     idToken: { decoded: EncryptedScopedIdToken; raw: string };
     pepper: Uint8Array;
-    jwkAddress?: AccountAddress;
+    jwkAddress: AccountAddress;
   }[];
-  activeAccount?: KeylessAccount | FederatedKeylessAccount;
+  activeAccount?: FederatedKeylessAccount;
   ephemeralKeyPair?: EphemeralKeyPair;
 }
 
-interface KeylessAccountsActions {
+interface FederatedKeylessAccountsActions {
   /**
    * Add an Ephemeral key pair to the store. If the account is invalid, an error is thrown.
    *
@@ -58,25 +55,22 @@ interface KeylessAccountsActions {
    * 3. The idToken and Ephemeral key pair must both be valid.
    *
    * @param idToken - The idToken of the account to switch to.
-   * @param isFederated - Boolean flag to identify keyless account type to use.
    * @param jwkAddress - The account address that holds the JWK set resource.
    * @returns The active account if the switch was successful, otherwise undefined.
    */
   switchKeylessAccount: (
     idToken: string,
-    isFederated: boolean,
-    jwkAddress?: AccountAddress,
-  ) => Promise<KeylessAccount | FederatedKeylessAccount | undefined>;
+    jwkAddress: AccountAddress,
+  ) => Promise<FederatedKeylessAccount | undefined>;
 }
 
-const storage = createJSONStorage<KeylessAccountsState>(() => localStorage, {
+const storage = createJSONStorage<FederatedKeylessAccountsState>(() => localStorage, {
   replacer: (_, e) => {
     if (typeof e === "bigint") return { __type: "bigint", value: e.toString() };
     if (e instanceof Uint8Array)
       return { __type: "Uint8Array", value: Array.from(e) };
     if (e instanceof EphemeralKeyPair)
       return EphemeralKeyPairEncoding.encode(e);
-    if (e instanceof KeylessAccount) return KeylessAccountEncoding.encode(e);
     if (e instanceof FederatedKeylessAccount) return FederatedKeylessAccountEncoding.encode(e);
     return e;
   },
@@ -85,20 +79,18 @@ const storage = createJSONStorage<KeylessAccountsState>(() => localStorage, {
     if (e && e.__type === "Uint8Array") return new Uint8Array(e.value);
     if (e && e.__type === "EphemeralKeyPair")
       return EphemeralKeyPairEncoding.decode(e);
-    if (e && e.__type === "KeylessAccount")
-      return KeylessAccountEncoding.decode(e);
     if (e && e.__type === "FederatedKeylessAccount")
       return FederatedKeylessAccountEncoding.decode(e);
     return e;
   },
 });
 
-export const useKeylessAccounts = create<
-  KeylessAccountsState & KeylessAccountsActions
+export const useFederatedKeylessAccounts = create<
+  FederatedKeylessAccountsState & FederatedKeylessAccountsActions
 >()(
   persist(
     (set, get, store) => ({
-      ...({ accounts: [] } satisfies KeylessAccountsState),
+      ...({ accounts: [] } satisfies FederatedKeylessAccountsState),
       ...({
         commitEphemeralKeyPair: (keyPair) => {
           const valid = isValidEphemeralKeyPair(keyPair);
@@ -116,7 +108,7 @@ export const useKeylessAccounts = create<
           return account ? validateEphemeralKeyPair(account) : undefined;
         },
 
-        switchKeylessAccount: async (idToken: string, isFederated: boolean, jwkAddress?: AccountAddress) => {
+        switchKeylessAccount: async (idToken: string, jwkAddress: AccountAddress) => {
           set({ ...get(), activeAccount: undefined }, true);
 
           // If the idToken is invalid, return undefined
@@ -151,28 +143,24 @@ export const useKeylessAccounts = create<
           const storedAccount = get().accounts.find(
             (a) => a.idToken.decoded.sub === decodedToken.sub
           );
-          let activeAccount: KeylessAccount | FederatedKeylessAccount | undefined;
-
-          const deriveKeylessAccountArgs: {
-            jwt: string,
-            ephemeralKeyPair: EphemeralKeyPair,
-            proofFetchCallback: ProofFetchCallback,
-            jwkAddress?: AccountAddressInput,
-            pepper?: Uint8Array,
-          } = {
-            jwt: idToken,
-            ephemeralKeyPair,
-            proofFetchCallback,
-            jwkAddress,
-          };
-
+          let activeAccount: FederatedKeylessAccount | undefined;
           try {
-            activeAccount = await devnetClient.deriveKeylessAccount(deriveKeylessAccountArgs);
+            activeAccount = await devnetClient.deriveKeylessAccount({
+              ephemeralKeyPair,
+              jwt: idToken,
+              proofFetchCallback,
+              jwkAddress,
+            });
           } catch (error) {
             // If we cannot derive an account using the pepper service, attempt to derive it using the stored pepper
             if (!storedAccount?.pepper) throw error;
-            deriveKeylessAccountArgs.pepper = storedAccount.pepper;
-            activeAccount = await devnetClient.deriveKeylessAccount(deriveKeylessAccountArgs);
+            activeAccount = await devnetClient.deriveKeylessAccount({
+              ephemeralKeyPair,
+              jwt: idToken,
+              pepper: storedAccount.pepper,
+              proofFetchCallback,
+              jwkAddress,
+            });
           }
 
           // Store the account and set it as the active account
@@ -180,28 +168,29 @@ export const useKeylessAccounts = create<
           set({
             accounts: storedAccount
               ? // If the account already exists, update it. Otherwise, append it.
-                get().accounts.map((a) =>
-                  a.idToken.decoded.sub === decodedToken.sub
-                    ? {
-                        idToken: { decoded: decodedToken, raw: idToken },
-                        pepper,
-                        ...(isFederated && { jwkAddress }),
-                      }
-                    : a
-                )
-              : [
-                  ...get().accounts,
-                  {
+              get().accounts.map((a) =>
+                a.idToken.decoded.sub === decodedToken.sub
+                  ? {
                     idToken: { decoded: decodedToken, raw: idToken },
                     pepper,
-                    ...(isFederated && { jwkAddress }), },
-                ],
+                    jwkAddress,
+                  }
+                  : a
+              )
+              : [
+                ...get().accounts,
+                {
+                  idToken: { decoded: decodedToken, raw: idToken },
+                  pepper,
+                  jwkAddress,
+                }
+              ],
             activeAccount,
           });
 
           return activeAccount;
         },
-      } satisfies KeylessAccountsActions),
+      } satisfies FederatedKeylessAccountsActions),
     }),
     {
       merge: (persistedState, currentState) => {
@@ -210,7 +199,7 @@ export const useKeylessAccounts = create<
           ...merged,
           activeAccount:
             merged.activeAccount &&
-            validateKeylessAccount(merged.activeAccount),
+            validateFederatedKeylessAccount(merged.activeAccount),
           ephemeralKeyPair:
             merged.ephemeralKeyPair &&
             validateEphemeralKeyPair(merged.ephemeralKeyPair),
@@ -219,7 +208,7 @@ export const useKeylessAccounts = create<
       name: LocalStorageKeys.keylessAccounts,
       partialize: ({ activeAccount, ephemeralKeyPair, ...state }) => ({
         ...state,
-        activeAccount: activeAccount && validateKeylessAccount(activeAccount),
+        activeAccount: activeAccount && validateFederatedKeylessAccount(activeAccount),
         ephemeralKeyPair:
           ephemeralKeyPair && validateEphemeralKeyPair(ephemeralKeyPair),
       }),

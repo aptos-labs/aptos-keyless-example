@@ -1,7 +1,6 @@
-import { AUTH0_CLIENT_ID, AUTH0_ISS, GOOGLE_CLIENT_ID } from "../core/constants";
+import { AUTH0_CLIENT_ID, AUTH0_ISS } from "../core/constants";
 import { normalizeUrl } from "../core/utils.ts";
 import useEphemeralKeyPair from "../core/useEphemeralKeyPair";
-import GoogleLogo from "../components/GoogleLogo";
 
 function LoginPage() {
   const ephemeralKeyPair = useEphemeralKeyPair();
@@ -34,8 +33,7 @@ function LoginPage() {
     return url.toString();
   };
 
-  const googleRedirectUrl = createRedirectUrl("https://accounts.google.com/o/oauth2/v2/auth", GOOGLE_CLIENT_ID, "/callback");
-  const auth0RedirectUrl = createRedirectUrl(`${normalizeUrl(AUTH0_ISS)}authorize`, AUTH0_CLIENT_ID, "/federated/callback");
+  const auth0RedirectUrl = createRedirectUrl(`${normalizeUrl(AUTH0_ISS)}authorize`, AUTH0_CLIENT_ID, "/callback");
 
   return (
     <div className="flex items-center justify-center h-screen w-screen px-4">
@@ -45,15 +43,8 @@ function LoginPage() {
           Sign in with your Google account to continue
         </p>
         <a
-          href={googleRedirectUrl}
-          className="flex justify-center items-center border rounded-lg px-8 py-2 hover:bg-gray-100 hover:shadow-sm active:bg-gray-50 active:scale-95 transition-all"
-        >
-          <GoogleLogo />
-          Sign in with Google
-        </a>
-        <a
           href={auth0RedirectUrl}
-          className="flex justify-center items-center border rounded-lg px-8 py-2 hover:bg-gray-100 hover:shadow-sm active:bg-gray-50 active:scale-95 transition-all mt-4"
+          className="flex justify-center items-center border rounded-lg px-8 py-2 hover:bg-gray-100 hover:shadow-sm active:bg-gray-50 active:scale-95 transition-all"
         >
           Sign in with Auth0
         </a>

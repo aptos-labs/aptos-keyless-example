@@ -13,11 +13,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/callback",
-    element: <CallbackPage isFederated={false} />,
-  },
-  {
-    path: "/federated/callback",
-    element: <CallbackPage isFederated={true} />,
+    element: <CallbackPage />,
   },
   {
     path: "/home",

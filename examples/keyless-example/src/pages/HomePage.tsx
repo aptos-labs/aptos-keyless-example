@@ -22,7 +22,7 @@ function HomePage() {
         <div className="grid gap-2">
           {activeAccount ? (
             <div className="flex justify-center items-center border rounded-lg px-8 py-2 shadow-sm cursor-not-allowed">
-              <GoogleLogo />
+              <GoogleLogo/>
               {collapseAddress(activeAccount?.accountAddress.toString())}
             </div>
           ) : (
