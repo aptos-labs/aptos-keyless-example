@@ -162,18 +162,18 @@ export const useKeylessAccounts = create<
           set({
             accounts: storedAccount
               ? // If the account already exists, update it. Otherwise, append it.
-                get().accounts.map((a) =>
-                  a.idToken.decoded.sub === decodedToken.sub
-                    ? {
-                        idToken: { decoded: decodedToken, raw: idToken },
-                        pepper,
-                      }
-                    : a
-                )
+              get().accounts.map((a) =>
+                a.idToken.decoded.sub === decodedToken.sub
+                  ? {
+                    idToken: { decoded: decodedToken, raw: idToken },
+                    pepper,
+                  }
+                  : a
+              )
               : [
-                  ...get().accounts,
-                  { idToken: { decoded: decodedToken, raw: idToken }, pepper },
-                ],
+                ...get().accounts,
+                { idToken: { decoded: decodedToken, raw: idToken }, pepper },
+              ],
             activeAccount,
           });
 

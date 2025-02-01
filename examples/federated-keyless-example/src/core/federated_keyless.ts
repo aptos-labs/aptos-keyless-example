@@ -1,0 +1,41 @@
+// Copyright © Aptos
+// SPDX-License-Identifier: Apache-2.0
+
+import { FederatedKeylessAccount } from "@aptos-labs/ts-sdk";
+import { isValidEphemeralKeyPair } from "./ephemeral";
+import { decodeIdToken, isValidIdToken } from "./idToken";
+
+/**
+ * Encoding for the FederatedKeylessAccount class to be stored in localStorage
+ */
+export const FederatedKeylessAccountEncoding = {
+  decode: (e: any) => FederatedKeylessAccount.fromBytes(e.data),
+  // If the account has a proof, it can be persisted, otherwise,
+  // it should not be stored.
+  encode: (e: FederatedKeylessAccount) =>
+    e.proof
+      ? {
+        __type: "FederatedKeylessAccount",
+        data: e.bcsToBytes(),
+      }
+      : undefined,
+};
+
+/**
+ * If the account has an invalid Ephemeral key pair or idToken, the account needs to be refreshed with either
+ * a new nonce or idToken. If the account is valid, it is returned.
+ *
+ * @param account - The account to validate.
+ * @returns The account if it is valid, otherwise undefined.
+ */
+export const validateFederatedKeylessAccount = (
+  account: FederatedKeylessAccount
+): FederatedKeylessAccount | undefined =>
+  // Check the Ephemeral key pair expiration
+  isValidEphemeralKeyPair(account.ephemeralKeyPair) &&
+  // Check the idToken for nonce
+  isValidIdToken(account.jwt) &&
+  // If the EphemeralAccount nonce algorithm changes, this will need to be updated
+  decodeIdToken(account.jwt).nonce === account.ephemeralKeyPair.nonce
+    ? account
+    : undefined;

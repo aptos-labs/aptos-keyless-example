@@ -15,14 +15,14 @@ export const KeylessAccountEncoding = {
   encode: (e: KeylessAccount) =>
     e.proof
       ? {
-          __type: "KeylessAccount",
-          data: e.bcsToBytes(),
-        }
+        __type: "KeylessAccount",
+        data: e.bcsToBytes(),
+      }
       : undefined,
 };
 
 /**
- * If the account has an invalid Ephemeral key pair or idToken, the account needs toe be refreshed with either
+ * If the account has an invalid Ephemeral key pair or idToken, the account needs to be refreshed with either
  * a new nonce or idToken. If the account is valid, it is returned.
  *
  * @param account - The account to validate.
