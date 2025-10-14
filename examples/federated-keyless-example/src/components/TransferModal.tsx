@@ -38,12 +38,6 @@ function TransferModal({ onClose, activeAccount }: TransferModalProps) {
     setIsLoading(true);
     setError(null);
 
-    console.log("activeAccount", activeAccount);
-    console.log("recipientAddress", recipientAddress);
-    console.log("amount", amount);
-
-
-
     try {
       // Convert amount to octas (1 APT = 10^8 octas)
       const amountInOctas = Math.floor(Number(amount) * 100000000);
@@ -56,22 +50,17 @@ function TransferModal({ onClose, activeAccount }: TransferModalProps) {
         coinType: "0x1::aptos_coin::AptosCoin",
       });
 
-      console.log("transaction", transaction);
-
       // Sign and submit transaction
-      const authenticater = devnetClient.sign({
+      const authenticator = devnetClient.sign({
         signer: activeAccount,
         transaction,
       });
 
-      console.log("authenticater", authenticater);
-
       const committedTransaction = await devnetClient.transaction.submit.simple({
         transaction: transaction,
-        senderAuthenticator: authenticater,
+        senderAuthenticator: authenticator,
       })
 
-      console.log("committedTransaction", committedTransaction);
       // Wait for transaction confirmation
       await devnetClient.waitForTransaction({
         transactionHash: committedTransaction.hash,
@@ -79,8 +68,6 @@ function TransferModal({ onClose, activeAccount }: TransferModalProps) {
 
       // Generate browser link
       const explorerUrl = `https://explorer.aptoslabs.com/txn/${committedTransaction.hash}?network=devnet`;
-
-      console.log("explorerUrl", explorerUrl);
 
       setTransferResult({
         hash: committedTransaction.hash,
