@@ -59,7 +59,7 @@ function TransferModal({ onClose, activeAccount }: TransferModalProps) {
       const committedTransaction = await devnetClient.transaction.submit.simple({
         transaction: transaction,
         senderAuthenticator: authenticator,
-      })
+      });
 
       // Wait for transaction confirmation
       await devnetClient.waitForTransaction({
