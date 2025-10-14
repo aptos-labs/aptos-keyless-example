@@ -27,8 +27,14 @@ export const isValidEphemeralKeyPair = (keyPair: EphemeralKeyPair): boolean => {
  * @param params Additional parameters for the ephemeral key pair
  */
 export const createEphemeralKeyPair = ({
-  expiryDateSecs = BigInt(Math.floor(Date.now() / 1000)) + BigInt(24 * 60 * 60),
+  expiryDateSecs,
   privateKey = Ed25519PrivateKey.generate(),
   ...options
-}: Partial<ConstructorParameters<typeof EphemeralKeyPair>[0]> = {}) =>
-  new EphemeralKeyPair({ expiryDateSecs, privateKey, ...options });
+}: Partial<ConstructorParameters<typeof EphemeralKeyPair>[0]> = {}) => {
+  const defaultExpiry = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+  return new EphemeralKeyPair({ 
+    expiryDateSecs: expiryDateSecs ?? defaultExpiry, 
+    privateKey, 
+    ...options 
+  });
+};
