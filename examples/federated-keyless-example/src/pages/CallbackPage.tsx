@@ -29,7 +29,7 @@ function CallbackPage() {
         await updateFederatedKeylessJwkSet(jwkAccount); // Call this during initialization or after a JWK set rotation.
         await switchKeylessAccount(idToken, jwkAccount.accountAddress);
         navigate("/home");
-      } catch (error) {
+      } catch {
         navigate("/");
       }
     }

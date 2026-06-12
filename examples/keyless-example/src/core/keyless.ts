@@ -1,7 +1,7 @@
 // Copyright © Aptos
 // SPDX-License-Identifier: Apache-2.0
 
-import { KeylessAccount } from "@aptos-labs/ts-sdk";
+import { KeylessAccount } from "@aptos-labs/ts-sdk/keyless";
 import { isValidEphemeralKeyPair } from "./ephemeral";
 import { decodeIdToken, isValidIdToken } from "./idToken";
 
