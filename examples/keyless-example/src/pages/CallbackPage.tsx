@@ -21,7 +21,7 @@ function CallbackPage() {
       try {
         await switchKeylessAccount(idToken);
         navigate("/home");
-      } catch (error) {
+      } catch {
         navigate("/");
       }
     }

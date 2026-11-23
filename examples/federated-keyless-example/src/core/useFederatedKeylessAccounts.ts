@@ -1,12 +1,11 @@
 // Copyright © Aptos
 // SPDX-License-Identifier: Apache-2.0
 
+import { AccountAddress } from "@aptos-labs/ts-sdk";
 import {
-  AccountAddress,
   EphemeralKeyPair,
   FederatedKeylessAccount,
-  ProofFetchStatus,
-} from "@aptos-labs/ts-sdk";
+} from "@aptos-labs/ts-sdk/keyless";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { LocalStorageKeys, devnetClient } from "./constants";
@@ -63,6 +62,10 @@ interface FederatedKeylessAccountsActions {
     jwkAddress: AccountAddress,
   ) => Promise<FederatedKeylessAccount | undefined>;
 }
+
+type ProofFetchResult =
+  | { status: "Success" }
+  | { status: "Failed"; error: string };
 
 const storage = createJSONStorage<FederatedKeylessAccountsState>(() => localStorage, {
   replacer: (_, e) => {
@@ -131,7 +134,7 @@ export const useFederatedKeylessAccounts = create<
           }
 
           // Create a handler to allow the proof to be computed asynchronously.
-          const proofFetchCallback = async (res: ProofFetchStatus) => {
+          const proofFetchCallback = async (res: ProofFetchResult) => {
             if (res.status === "Failed") {
               get().disconnectKeylessAccount();
             } else {
