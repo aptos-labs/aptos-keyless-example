@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FederatedKeylessAccount } from "@aptos-labs/ts-sdk";
+import { FederatedKeylessAccount } from "@aptos-labs/ts-sdk/keyless";
 import { devnetClient } from "../core/constants";
 
 interface TransferModalProps {
